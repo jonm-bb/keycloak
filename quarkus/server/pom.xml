@@ -17,10 +17,6 @@
         <!-- Quarkus -->
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-undertow</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
             <artifactId>quarkus-resteasy</artifactId>
         </dependency>
         <dependency>
@@ -38,6 +34,14 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-jdbc-mariadb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-vertx</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-vertx-web</artifactId>
         </dependency>
 
         <!-- Keycloak -->
