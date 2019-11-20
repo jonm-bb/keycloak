@@ -15,27 +15,27 @@
  * limitations under the License.
  */
 
-package org.keycloak.services.resources;
+package org.keycloak.provider.quarkus;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
-import javax.ws.rs.ApplicationPath;
-import io.quarkus.runtime.StartupEvent;
+import javax.inject.Inject;
 
-/**
- * @author <a href="mailto:psilva@redhat.com">Pedro Igor</a>
- */
-@ApplicationPath("/")
-public class QuarkusApplication extends KeycloakApplication {
+import io.quarkus.runtime.ShutdownEvent;
+import org.keycloak.services.resources.KeycloakApplication;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-    private Runnable function;
+@ApplicationScoped
+public class QuarkusShutdownObserver {
 
-    private void startupEvent(@Observes StartupEvent event) {
-        function.run();
+    private static final Logger LOGGER = LoggerFactory.getLogger("QuarkusShutdownObserver");
+
+    @Inject
+    private KeycloakApplication keycloakApplication;
+
+    void onStop(@Observes ShutdownEvent ev) {
+        LOGGER.info("Keycloak is stopping...");
+        keycloakApplication.getSessionFactory().close();
     }
-
-    @Override
-    protected void init(Runnable function) {
-        this.function = function;
-    }
-
 }

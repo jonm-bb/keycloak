@@ -59,7 +59,7 @@ import org.keycloak.timer.TimerProvider;
 import org.keycloak.transaction.JtaTransactionManagerLookup;
 import org.keycloak.util.JsonSerialization;
 
-import javax.servlet.ServletContext;
+//import javax.servlet.ServletContext;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 import javax.ws.rs.core.Application;
@@ -139,25 +139,25 @@ public class KeycloakApplication extends Application {
         function.run();
     }
 
-    protected ServletContext getServletContext() {
-        return Resteasy.getContextData(ServletContext.class);
-    }
+    //protected ServletContext getServletContext() {
+    //    return Resteasy.getContextData(ServletContext.class);
+    //}
 
     protected void startup() {
-        ServletContext context = getServletContext();
+        //ServletContext context = getServletContext();
         logger.debugv("RestEasy provider: {0}", Resteasy.getProvider().getClass().getName());
 
-        if ("true".equals(context.getInitParameter(KEYCLOAK_EMBEDDED))) {
+        //if ("true".equals(context.getInitParameter(KEYCLOAK_EMBEDDED))) {
             embedded = true;
-        }
+        //}
 
 //        Resteasy.pushDefaultContextObject(KeycloakApplication.class, this);
         Resteasy.pushContext(KeycloakApplication.class, this); // for injection
-        loadConfig(context);
+        loadConfig();
         this.sessionFactory = createSessionFactory();
 
-        context.setAttribute(KeycloakSessionFactory.class.getName(), this.sessionFactory);
-        context.setAttribute(KeycloakApplication.class.getName(), this);
+        //context.setAttribute(KeycloakSessionFactory.class.getName(), this.sessionFactory);
+        //context.setAttribute(KeycloakApplication.class.getName(), this);
 
         ExportImportManager[] exportImportManager = new ExportImportManager[1];
 
@@ -272,11 +272,11 @@ public class KeycloakApplication extends Application {
         }
     }
 
-    public static void loadConfig(ServletContext context) {
+    public static void loadConfig() {
         try {
             JsonNode node = null;
 
-            String dmrConfig = loadDmrConfig(context);
+            String dmrConfig = null; //loadDmrConfig(context);
             if (dmrConfig != null) {
                 node = new ObjectMapper().readTree(dmrConfig);
                 ServicesLogger.LOGGER.loadingFrom("standalone.xml or domain.xml");
@@ -301,11 +301,11 @@ public class KeycloakApplication extends Application {
 
             if (node != null) {
                 Map<String, String> propertyOverridesMap = new HashMap<>();
-                String propertyOverrides = context.getInitParameter(SERVER_CONTEXT_CONFIG_PROPERTY_OVERRIDES);
-                if (context.getInitParameter(SERVER_CONTEXT_CONFIG_PROPERTY_OVERRIDES) != null) {
-                    JsonNode jsonObj = new ObjectMapper().readTree(propertyOverrides);
-                    jsonObj.fields().forEachRemaining(e -> propertyOverridesMap.put(e.getKey(), e.getValue().asText()));
-                }
+                //String propertyOverrides = context.getInitParameter(SERVER_CONTEXT_CONFIG_PROPERTY_OVERRIDES);
+                //if (context.getInitParameter(SERVER_CONTEXT_CONFIG_PROPERTY_OVERRIDES) != null) {
+                //    JsonNode jsonObj = new ObjectMapper().readTree(propertyOverrides);
+                //    jsonObj.fields().forEachRemaining(e -> propertyOverridesMap.put(e.getKey(), e.getValue().asText()));
+               // }
                 Properties properties = new SystemEnvProperties(propertyOverridesMap);
                 Config.init(new JsonConfigProvider(node, properties));
             } else {
@@ -316,15 +316,16 @@ public class KeycloakApplication extends Application {
         }
     }
 
-    private static String loadDmrConfig(ServletContext context) {
-        String dmrConfig = context.getInitParameter(KEYCLOAK_CONFIG_PARAM_NAME);
+    private static String loadDmrConfig() {
+        return null;
+        /*String dmrConfig = context.getInitParameter(KEYCLOAK_CONFIG_PARAM_NAME);
         if (dmrConfig == null) return null;
 
         ModelNode dmrConfigNode = ModelNode.fromString(dmrConfig);
         if (dmrConfigNode.asPropertyList().isEmpty()) return null;
 
         // note that we need to resolve expressions BEFORE we convert to JSON
-        return dmrConfigNode.resolve().toJSONString(true);
+        return dmrConfigNode.resolve().toJSONString(true);*/
     }
 
     public static KeycloakSessionFactory createSessionFactory() {
