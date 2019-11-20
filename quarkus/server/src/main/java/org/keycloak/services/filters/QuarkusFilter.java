@@ -1,4 +1,4 @@
-package org.keycloak.provider.quarkus;
+package org.keycloak.services.filters;
 
 import io.vertx.core.http.HttpServerRequest;
 import org.jboss.resteasy.core.interception.jaxrs.ContainerResponseContextImpl;
@@ -21,9 +21,8 @@ import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.ext.Provider;
 import java.io.IOException;
 import java.net.HttpCookie;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @PreMatching
 @Provider
@@ -33,7 +32,7 @@ public class QuarkusFilter implements javax.ws.rs.container.ContainerRequestFilt
     private static final Logger LOGGER = LoggerFactory.getLogger("QuarkusFilter");
 
     @Inject
-    QuarkusLifecycle quarkusLifecycle;
+    KeycloakApplication quarkusApplication;
 
     @Context
     HttpServerRequest request;
@@ -45,10 +44,10 @@ public class QuarkusFilter implements javax.ws.rs.container.ContainerRequestFilt
             containerRequestContext.getHeaders().add("Content-Type", MediaType.APPLICATION_FORM_URLENCODED);
         }
 
-        KeycloakApplication keycloakApplication = quarkusLifecycle.getKeycloakApplication();
-        Resteasy.pushContext(KeycloakApplication.class, keycloakApplication);
+        //KeycloakApplication keycloakApplication = quarkusLifecycle.getKeycloakApplication();
+        Resteasy.pushContext(KeycloakApplication.class, quarkusApplication);
 
-        KeycloakSessionFactory sessionFactory = keycloakApplication.getSessionFactory();
+        KeycloakSessionFactory sessionFactory = quarkusApplication.getSessionFactory();
 
         KeycloakSession session = sessionFactory.create();
 

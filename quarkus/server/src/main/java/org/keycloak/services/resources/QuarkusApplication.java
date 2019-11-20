@@ -15,17 +15,28 @@
  * limitations under the License.
  */
 
-package org.keycloak.provider.quarkus;
+package org.keycloak.services.resources;
 
-import io.quarkus.arc.Arc;
-import org.keycloak.services.resources.KeycloakApplication;
+import javax.enterprise.event.Observes;
+import javax.ws.rs.ApplicationPath;
+import io.quarkus.runtime.StartupEvent;
 
-public class QuarkusStartup implements KeycloakApplication.Startup {
+
+/**
+ * @author <a href="mailto:psilva@redhat.com">Pedro Igor</a>
+ */
+@ApplicationPath("/")
+public class QuarkusApplication extends KeycloakApplication {
+
+    private Runnable function;
+
+    private void startupEvent(@Observes StartupEvent event) {
+        function.run();
+    }
 
     @Override
-    public void execute(Runnable command) {
-        QuarkusStartupObserver observer = Arc.container().instance(QuarkusStartupObserver.class).get();
-        observer.setCommand(command);
+    protected void init(Runnable function) {
+        this.function = function;
     }
 
 }

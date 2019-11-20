@@ -59,13 +59,11 @@ import org.keycloak.timer.TimerProvider;
 import org.keycloak.transaction.JtaTransactionManagerLookup;
 import org.keycloak.util.JsonSerialization;
 
-import javax.servlet.ServletContext;
+//import javax.servlet.ServletContext;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
-import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.UriInfo;
-import javax.ws.rs.ext.Provider;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -109,31 +107,10 @@ public class KeycloakApplication extends Application {
     protected Set<Class<?>> classes = new HashSet<Class<?>>();
 
     protected KeycloakSessionFactory sessionFactory;
-    protected String contextPath;
 
     public KeycloakApplication() {
 
         try {
-
-            logger.debugv("RestEasy provider: {0}", Resteasy.getProvider().getClass().getName());
-
-            //ServletContext context = Resteasy.getContextData(ServletContext.class);
-
-            //if ("true".equals(context.getInitParameter(KEYCLOAK_EMBEDDED))) {
-                embedded = true;
-            //}
-
-            loadConfig(null);
-
-            //this.contextPath = context.getContextPath();
-            //Quarkus
-            this.contextPath = "";
-
-            this.sessionFactory = createSessionFactory();
-
-            //Resteasy.pushDefaultContextObject(KeycloakApplication.class, this);
-            Resteasy.pushContext(KeycloakApplication.class, this); // for injection
-            //context.setAttribute(KeycloakSessionFactory.class.getName(), this.sessionFactory);
 
             singletons.add(new RobotsResource());
             singletons.add(new RealmsResource());
@@ -158,20 +135,38 @@ public class KeycloakApplication extends Application {
 
     }
 
-    private void init(Runnable function) {
-
-        ServiceLoader<Startup> loader = ServiceLoader.load(Startup.class);
-        Iterator<Startup> iterator = loader.iterator();
-
-        if (iterator.hasNext()) {
-            iterator.next().execute(function);
-        } else {
-            function.run();
-        }
-
+    protected void init(Runnable function) {
+        function.run();
     }
 
+    public URI getBaseUri(UriInfo uriInfo) {
+        return uriInfo.getBaseUriBuilder().replacePath(getContextPath()).build();
+    }
+
+
+    public String getContextPath() {
+        return "";
+    }
+
+    //protected ServletContext getServletContext() {
+    //    return Resteasy.getContextData(ServletContext.class);
+    //}
+
     protected void startup() {
+        //ServletContext context = getServletContext();
+        logger.debugv("RestEasy provider: {0}", Resteasy.getProvider().getClass().getName());
+
+        //if ("true".equals(context.getInitParameter(KEYCLOAK_EMBEDDED))) {
+            embedded = true;
+        //}
+
+//        Resteasy.pushDefaultContextObject(KeycloakApplication.class, this);
+        Resteasy.pushContext(KeycloakApplication.class, this); // for injection
+        loadConfig();
+        this.sessionFactory = createSessionFactory();
+
+        //context.setAttribute(KeycloakSessionFactory.class.getName(), this.sessionFactory);
+        //context.setAttribute(KeycloakApplication.class.getName(), this);
 
         ExportImportManager[] exportImportManager = new ExportImportManager[1];
 
@@ -248,7 +243,7 @@ public class KeycloakApplication extends Application {
             }
 
             if (createMasterRealm) {
-                applianceBootstrap.createMasterRealm(contextPath);
+                applianceBootstrap.createMasterRealm("");
             }
             session.getTransactionManager().commit();
         } catch (RuntimeException re) {
@@ -286,25 +281,11 @@ public class KeycloakApplication extends Application {
         }
     }
 
-    public String getContextPath() {
-        return contextPath;
-    }
-
-    /**
-     * Get base URI of WAR distribution, not JAX-RS
-     *
-     * @param uriInfo
-     * @return
-     */
-    public URI getBaseUri(UriInfo uriInfo) {
-        return uriInfo.getBaseUriBuilder().replacePath(getContextPath()).build();
-    }
-
-    public static void loadConfig(ServletContext context) {
+    public static void loadConfig() {
         try {
             JsonNode node = null;
 
-            String dmrConfig = loadDmrConfig(context);
+            String dmrConfig = null; //loadDmrConfig(context);
             if (dmrConfig != null) {
                 node = new ObjectMapper().readTree(dmrConfig);
                 ServicesLogger.LOGGER.loadingFrom("standalone.xml or domain.xml");
@@ -329,11 +310,11 @@ public class KeycloakApplication extends Application {
 
             if (node != null) {
                 Map<String, String> propertyOverridesMap = new HashMap<>();
-                /*String propertyOverrides = context.getInitParameter(SERVER_CONTEXT_CONFIG_PROPERTY_OVERRIDES);
-                if (context.getInitParameter(SERVER_CONTEXT_CONFIG_PROPERTY_OVERRIDES) != null) {
-                    JsonNode jsonObj = new ObjectMapper().readTree(propertyOverrides);
-                    jsonObj.fields().forEachRemaining(e -> propertyOverridesMap.put(e.getKey(), e.getValue().asText()));
-                }*/
+                //String propertyOverrides = context.getInitParameter(SERVER_CONTEXT_CONFIG_PROPERTY_OVERRIDES);
+                //if (context.getInitParameter(SERVER_CONTEXT_CONFIG_PROPERTY_OVERRIDES) != null) {
+                //    JsonNode jsonObj = new ObjectMapper().readTree(propertyOverrides);
+                //    jsonObj.fields().forEachRemaining(e -> propertyOverridesMap.put(e.getKey(), e.getValue().asText()));
+               // }
                 Properties properties = new SystemEnvProperties(propertyOverridesMap);
                 Config.init(new JsonConfigProvider(node, properties));
             } else {
@@ -344,16 +325,15 @@ public class KeycloakApplication extends Application {
         }
     }
 
-    private static String loadDmrConfig(ServletContext context) {
-    /*    String dmrConfig = context.getInitParameter(KEYCLOAK_CONFIG_PARAM_NAME);
+    private static String loadDmrConfig() {
+        String dmrConfig = null; //context.getInitParameter(KEYCLOAK_CONFIG_PARAM_NAME);
         if (dmrConfig == null) return null;
 
         ModelNode dmrConfigNode = ModelNode.fromString(dmrConfig);
         if (dmrConfigNode.asPropertyList().isEmpty()) return null;
 
         // note that we need to resolve expressions BEFORE we convert to JSON
-        return dmrConfigNode.resolve().toJSONString(true);*/
-        return null;
+        return dmrConfigNode.resolve().toJSONString(true);
     }
 
     public static KeycloakSessionFactory createSessionFactory() {
@@ -416,7 +396,6 @@ public class KeycloakApplication extends Application {
 
             try {
                 RealmManager manager = new RealmManager(session);
-                manager.setContextPath(getContextPath());
 
                 if (rep.getId() != null && manager.getRealm(rep.getId()) != null) {
                     ServicesLogger.LOGGER.realmExists(rep.getRealm(), from);
@@ -519,8 +498,4 @@ public class KeycloakApplication extends Application {
             }
         }.start();
     }
-
-    public static interface Startup extends Executor {
-    }
-
 }
