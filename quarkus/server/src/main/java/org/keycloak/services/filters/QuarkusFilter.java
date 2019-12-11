@@ -59,7 +59,7 @@ public class QuarkusFilter implements javax.ws.rs.container.ContainerRequestFilt
     @Override
     public void filter(ContainerRequestContext containerRequestContext) throws IOException {
 
-        if (!containerRequestContext.getHeaders().containsKey("Content_Type")) {
+        if (containerRequestContext.getMediaType() == null) {
             containerRequestContext.getHeaders().add("Content-Type", MediaType.APPLICATION_FORM_URLENCODED);
         }
 
@@ -73,8 +73,6 @@ public class QuarkusFilter implements javax.ws.rs.container.ContainerRequestFilt
         ClientConnection connection = new ClientConnection() {
             @Override
             public String getRemoteAddr() {
-                //TODO
-                //request.remoteAddress().toString() fails as it thinks the ipv6 is invalid in IPAddressUtil.java - Will need further investigation
                 return request.remoteAddress().host();
             }
 
@@ -90,8 +88,6 @@ public class QuarkusFilter implements javax.ws.rs.container.ContainerRequestFilt
 
             @Override
             public String getLocalAddr() {
-                //TODO
-                //request.localAddress().toString() fails as it thinks the ipv6 is invalid in IPAddressUtil.java - Will need further investigation
                 return request.localAddress().host();
             }
 
@@ -138,7 +134,7 @@ public class QuarkusFilter implements javax.ws.rs.container.ContainerRequestFilt
             });
         }
 
-        //KeycloakTransactionCommitter not getting called, so adding here
+        //KeycloakTransactionCommitter does not have RestEasy context for some resason, so running code here
         KeycloakTransaction tx = Resteasy.getContextData(KeycloakTransaction.class);
         if (tx != null && tx.isActive()) {
             if (tx.getRollbackOnly()) {
@@ -160,29 +156,10 @@ public class QuarkusFilter implements javax.ws.rs.container.ContainerRequestFilt
             return null;
         }
 
-        //Mapping cookie to exactly as source string.
-        boolean zeroMaxAge = false;
-        if(value.contains("Max-Age=0")) {
-            zeroMaxAge = true;
-        }
+        NewCookie cookie = NewCookie.valueOf(value);
 
-        boolean versionOne = false;
-        if (value.contains("Version=1")) {
-            versionOne = true;
-        }
+        String cookieValue = cookie.getValue();
 
-        final List<HttpCookie> httpCookies = HttpCookie.parse(value);
-        final HttpCookie httpCookie = httpCookies.get(0);
-        return new NewCookie(
-                httpCookie.getName(),
-                httpCookie.getValue(),
-                httpCookie.getPath(),
-                httpCookie.getDomain(),
-                (versionOne) ? 1 : httpCookie.getVersion(),
-                httpCookie.getComment(),
-                (zeroMaxAge) ? 0 : (int) httpCookie.getMaxAge(),
-                (zeroMaxAge) ? new Date(0) : (value.contains("Max-Age")) ? new Date(System.currentTimeMillis() + httpCookie.getMaxAge()*1000) : null,
-                httpCookie.getSecure(),
-                httpCookie.isHttpOnly());
+        return cookie;
     }
 }
